@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Columbia Slough Watershed</title>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        #controlsContainer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        .button {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            color: black;
+            text-decoration: none;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+        .button:hover {
+            transform: scale(1.1);
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="controlsContainer">
+        <a href="../es/index.html" class="button">ES</a>
+    </div>
+    <script>
+        function initializeMap() {
+            mapboxgl.accessToken = 'pk.eyJ1IjoiaWZvcm1haGVyIiwiYSI6ImNsaHBjcnAwNDF0OGkzbnBzZmUxM2Q2bXgifQ.fIyIgSwq1WWVk9CKlXRXiQ';
+            map = new mapboxgl.Map({
+                container: 'map',
+                style: 'mapbox://styles/iformaher/cm3utu7s000d401sv01ev0wyn',
+                bounds: [[-122.9, 45.53], [-122.3, 45.73]]
+            });
+
+            map.setBearing(16);
+
+            fetch('../../resources/poi.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    poi = data;
+                    map.on('load', function() {
+                        addPOI();
+                    });
+                })
+                .catch(error => console.error('Error loading poi data:', error));
+        }
+
+        function addPOI() {
+            fetch('../../resources/poi.geojson')
+                .then(response => response.json())
+                .then(data => {
+                    const features = data.features;
+                    features.forEach(function(feature) {
+                        const coordinates = feature.geometry.coordinates;
+                        const title = feature.properties.TitleEN;
+                        const content = feature.properties.ContentEN;
+
+                        const marker = new mapboxgl.Marker()
+                            .setLngLat(coordinates)
+                            .addTo(map);
+                        
+                        const popupContent = `<strong>${title}</strong><br>${content}`;
+                        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
+                        marker.setPopup(popup);
+
+                        marker.getElement().addEventListener('click', () => {
+                            map.flyTo({
+                                center: coordinates,
+                                zoom: 14,
+                                speed: 1.5,
+                                curve: 1
+                            });
+
+                            popup.addTo(map);
+                        });
+                    });
+                })
+                .catch(error => console.error('Error loading poi data:', error));
+        }
+        
+        window.onload = function() {
+            initializeMap();
+        }
+    </script>
+</body>
+</html>
