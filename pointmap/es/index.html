@@ -78,8 +78,8 @@
                     const features = data.features;
                     features.forEach(function(feature) {
                         const coordinates = feature.geometry.coordinates;
-                        const title = feature.properties.TitleEN;
-                        const content = feature.properties.ContentEN;
+                        const title = feature.properties.TitleES;
+                        const content = feature.properties.ContentES;
 
                         const marker = new mapboxgl.Marker()
                             .setLngLat(coordinates)
