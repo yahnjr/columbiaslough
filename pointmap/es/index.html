@@ -65,43 +65,74 @@
                 .then(data => {
                     poi = data;
                     map.on('load', function() {
-                        addPOI();
+                        addPOI(poi);
                     });
                 })
                 .catch(error => console.error('Error loading poi data:', error));
         }
 
-        function addPOI() {
-            fetch('../../resources/poi.geojson')
-                .then(response => response.json())
-                .then(data => {
-                    const features = data.features;
-                    features.forEach(function(feature) {
-                        const coordinates = feature.geometry.coordinates;
-                        const title = feature.properties.TitleES;
-                        const content = feature.properties.ContentES;
+        function prepProperties(data) {
+            data.features.forEach(feature => {
+                if (!feature.properties) {
+                    feature.properties = {};
+                }
+                feature.properties.id = feature.id;
+            });
+            return data;
+        }
 
-                        const marker = new mapboxgl.Marker()
-                            .setLngLat(coordinates)
-                            .addTo(map);
-                        
-                        const popupContent = `<strong>${title}</strong><br>${content}`;
-                        const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(popupContent);
-                        marker.setPopup(popup);
+        function addPOI(data) {
+            const processedData = prepProperties(data);
 
-                        marker.getElement().addEventListener('click', () => {
-                            map.flyTo({
-                                center: coordinates,
-                                zoom: 14,
-                                speed: 1.5,
-                                curve: 1
-                            });
+            map.addSource('poi', {
+                type: 'geojson',
+                data: processedData
+            });
 
-                            popup.addTo(map);
-                        });
-                    });
-                })
-                .catch(error => console.error('Error loading poi data:', error));
+            map.addLayer({
+                id: 'poi-circles',
+                type: 'circle',
+                source: 'poi',
+                paint: {
+                    'circle-radius': 9,
+                    'circle-color': 'red',
+                    'circle-opacity': 1
+                }
+            });
+
+            map.addLayer({
+                id: 'poi-labels',
+                type: 'symbol',
+                source: 'poi',
+                layout: {
+                    'text-field': ['get', 'id'],
+                    'text-size': 12,
+                    'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+                    'text-anchor': 'center'
+                },
+                paint: {
+                    'text-color': 'white'
+                }
+            });
+
+            map.on('click', 'poi-circles', (e) => {
+                const coordinates = e.features[0].geometry.coordinates.slice();
+                const title = e.features[0].properties.TitleES;
+                const content = e.features[0].properties.ContentES;
+
+                const popupContent = `<strong>${title}</strong><br>${content}`;
+                new mapboxgl.Popup({ offset: 25 })
+                    .setLngLat(coordinates)
+                    .setHTML(popupContent)
+                    .addTo(map);
+
+                map.flyTo({
+                    center: coordinates,
+                    zoom: 14,
+                    speed: 1.5,
+                    curve: 1
+                });
+            });
         }
         
         window.onload = function() {
